@@ -1,0 +1,52 @@
+﻿
+
+trigger:
+  - master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  projectPath: '/*.csproj'
+  buildConfiguration: 'Release'
+  dotnetVersion: '3.1.x'
+
+steps:
+  - task: NuGetToolInstaller@1
+    inputs:
+      versionSpec: '5.3.0'
+
+  - task: NuGetCommand@2
+    inputs:
+      command: 'restore'
+      restoreSolution: '**/*.sln'
+      feedsToUse: 'select'
+
+  - task: UseDotNet@2
+    displayName: 'Use .NET Core sdk'
+    inputs:
+      version: ${dotnetVersion}
+      packageType: sdk
+      installationPath: $(Agent.ToolsDirectory)/dotnet
+
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: 'build'
+      arguments: '--configuration $(buildConfiguration)'
+      projects: ${projectPath}
+      includeNuGetOrg: true
+
+  - task: DotNetCoreCLI@2
+    displayName: "Publish"
+    inputs:
+      command: 'publish'
+      publishWebProjects: true
+      projects: '$(Build.Repository.LocalPath)/${projectPath}'
+      arguments: '-r linux-x64 --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+      zipAfterPublish: true
+
+  - task: PublishBuildArtifacts@1
+    displayName: "Upload Artifacts"
+    inputs:
+      pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      artifactName: '' 
